@@ -1,23 +1,997 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>공부의 나침반</title>
-<link rel="manifest" href="manifest.json">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<meta name="theme-color" content="#000000">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
 <style>
-  html, body { margin: 0; height: 100%; background: #000; }
-  iframe { border: 0; width: 100%; height: 100%; display: block; }
+  :root { --bg:#000; --fg:#fff; --line:#333; --line-strong:#fff; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--fg); }
+  body {
+    font-family:'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    font-size:32px; line-height:1.45; letter-spacing:-3px; word-break:keep-all;
+  }
+  input, textarea, button { font:inherit; letter-spacing:inherit; color:inherit; }
+  .hidden { display:none !important; }
+  .wrap { max-width:1080px; margin:0 auto; padding:48px 28px 200px; }
+
+  h1 { font-size:88px; font-weight:800; line-height:1.05; margin:0; }
+  h2 { font-size:44px; font-weight:700; margin:0 0 20px; }
+  p { margin:0 0 16px; }
+  label { display:block; font-weight:600; margin:24px 0 10px; }
+  label:first-of-type { margin-top:0; }
+
+  .block { border-top:2px solid var(--line); padding:44px 0; }
+  input[type=text], input[type=password], input[type=date], textarea {
+    width:100%; background:var(--bg); border:2px solid var(--line); border-radius:14px;
+    padding:18px 22px; outline:none;
+  }
+  input::placeholder, textarea::placeholder { color:#fff; opacity:.45; }
+  input:focus, textarea:focus { border-color:var(--line-strong); }
+  input[type=date] { color-scheme:dark; }
+  textarea { resize:vertical; min-height:260px; }
+
+  .btn { background:#fff; color:#000; border:2px solid #fff; border-radius:999px; padding:14px 34px; font-weight:700; cursor:pointer; }
+  .btn.ghost { background:transparent; color:#fff; border-color:var(--line); }
+  .btn:disabled { opacity:.5; cursor:default; }
+  .btn.full { width:100%; margin-top:32px; }
+  button:focus-visible, input:focus-visible { outline:3px solid #fff; outline-offset:3px; }
+
+  /* 로그인 */
+  #login { min-height:80vh; display:flex; flex-direction:column; justify-content:center; }
+  #login h1 { margin-bottom:12px; }
+  #login .lead { margin-bottom:48px; }
+  .msg { margin-top:20px; min-height:1.5em; }
+
+  /* 헤더 */
+  .top { display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap; margin-bottom:36px; }
+  .who { display:flex; align-items:center; gap:16px; }
+  .needle { display:inline-block; transform:rotate(-35deg); margin-right:8px; }
+
+  .datebar { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:28px; }
+  .datebar input { width:auto; flex:1; min-width:min(280px, 100%); }
+
+  /* 피드백 알림 (종 모양) */
+  .bell-wrap { position:relative; display:inline-block; }
+  .bell {
+    position:relative; background:transparent; border:2px solid var(--line); border-radius:999px;
+    padding:12px 22px; cursor:pointer; line-height:1;
+  }
+  .bell.on { border-color:#fff; }
+  .badge {
+    position:absolute; top:-10px; right:-10px; min-width:1.5em; height:1.5em; padding:0 .35em;
+    background:#fff; color:#000; border-radius:999px; font-weight:800; font-size:26px;
+    display:flex; align-items:center; justify-content:center; letter-spacing:-1px;
+  }
+  .bell-panel {
+    position:absolute; right:0; top:calc(100% + 14px); width:min(92vw, 640px); z-index:20;
+    background:#000; border:3px solid #fff; border-radius:20px; padding:24px; text-align:left;
+  }
+  .bell-head { display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:16px; flex-wrap:wrap; }
+  .bell-item {
+    width:100%; display:block; text-align:left; background:transparent; color:#fff;
+    border:none; border-top:2px solid var(--line); padding:20px 4px; cursor:pointer;
+  }
+  .bell-item:hover { background:#141414; }
+  .bell-item .when { display:block; margin-top:6px; }
+  .bell-panel { max-height:70vh; overflow-y:auto; }
+  /* 휴대폰: 알림 목록을 화면 폭에 맞춰 위쪽에 띄운다 */
+  @media (max-width:700px) {
+    .bell-panel {
+      position:fixed; left:12px; right:12px; top:12px; width:auto;
+      max-height:calc(100vh - 24px); font-size:22px; letter-spacing:-1px; padding:18px;
+    }
+    .bell-panel .btn { padding:10px 20px; }
+    .bell-item { padding:14px 4px; }
+  }
+
+  /* 주제 글쓰기 */
+  .topic { border:2px solid var(--line); border-radius:20px; padding:28px; margin-bottom:24px; }
+  .topic.has { border-color:#fff; }
+  .topic .tdate { opacity:.65; margin-bottom:6px; }
+  .topic h3 { font-size:38px; font-weight:800; margin:0 0 12px; }
+  .topic .tbody { white-space:pre-wrap; margin-bottom:20px; }
+  .topic textarea { min-height:200px; }
+  .trow {
+    width:100%; display:flex; justify-content:space-between; align-items:center; gap:16px;
+    background:transparent; color:#fff; border:none; border-bottom:2px solid var(--line);
+    padding:22px 4px; text-align:left; cursor:pointer;
+  }
+  .trow:first-child { border-top:2px solid var(--line); }
+  .trow:hover { background:#141414; }
+  .trow .tt { font-weight:700; }
+  .trow .meta { display:block; opacity:.65; margin-top:4px; }
+  .trow .cnt { flex:none; border:2px solid var(--line); border-radius:999px; padding:2px 18px; }
+  .trow .cnt.mine { background:#fff; color:#000; border-color:#fff; }
+  .wlist { margin-top:36px; }
+  .wcard { border-top:2px solid var(--line); padding:22px 0; }
+  .wcard .wname { font-weight:700; }
+  .wcard .wname span { font-weight:400; opacity:.65; }
+  .wcard .wtext { white-space:pre-wrap; margin:8px 0 0; }
+  .wcard.me .wname::after { content:' · 나'; }
+
+  /* 확인 창 */
+  .modal { position:fixed; inset:0; z-index:50; background:rgba(0,0,0,.75); display:flex; align-items:center; justify-content:center; padding:16px; }
+  .modal-card { background:#000; border:3px solid #fff; border-radius:24px; padding:36px; width:min(100%, 620px); }
+  .modal-card .sub { opacity:.7; }
+  .modal-btns { display:flex; gap:12px; justify-content:flex-end; margin-top:28px; }
+  .modal-btns .btn { min-width:5em; }
+  @media (max-width:700px) { .modal-card { padding:28px 22px; } .modal-btns .btn { flex:1; min-width:0; padding:14px 0; } }
+
+  .tabs { display:flex; gap:12px; margin-bottom:8px; }
+  .tab { flex:1; background:transparent; border:2px solid var(--line); border-radius:999px; padding:14px; font-weight:700; cursor:pointer; }
+  .tab.on { background:#fff; color:#000; border-color:#fff; }
+
+  /* 다짐 — 가장 크게 */
+  #pledge { font-size:48px; font-weight:700; border:none; border-bottom:2px solid var(--line); border-radius:0; padding:12px 0; }
+  #pledge:focus { border-bottom-color:#fff; }
+
+  /* 계획 */
+  .progress { display:flex; align-items:center; gap:20px; margin-bottom:24px; }
+  .bar { flex:1; height:16px; border:2px solid #fff; border-radius:999px; overflow:hidden; }
+  .bar i { display:block; height:100%; background:#fff; width:0; transition:width .3s; }
+  .rate { font-weight:800; min-width:3.2em; text-align:right; }
+  .plan { border:2px solid var(--line); border-radius:18px; padding:20px; margin-bottom:16px; background:#000; }
+  .plan.done { border-color:#fff; }
+  .plan.dragging { opacity:.55; border-color:#fff; }
+  .plan.dragging input, .plan.dragging .seg, .plan.dragging .icon, .plan.dragging .later { pointer-events:none; }
+  body.dragging, body.dragging * { user-select:none; -webkit-user-select:none; }
+  .plan-top { display:grid; grid-template-columns:auto 1fr 2fr auto; gap:12px; margin-bottom:14px; align-items:center; }
+  .grip {
+    background:transparent; border:2px solid var(--line); border-radius:14px; padding:14px 18px;
+    cursor:grab; touch-action:none; line-height:1;
+  }
+  .grip:active { cursor:grabbing; }
+  .icon { background:transparent; border:2px solid var(--line); border-radius:14px; padding:0 20px; cursor:pointer; }
+  .plan-bottom { display:flex; gap:8px; align-items:stretch; }
+  .plan-bottom .seg { flex:1; }
+  .later { background:transparent; border:2px solid var(--line); border-radius:12px; padding:10px 18px; cursor:pointer; font-weight:600; white-space:nowrap; }
+  .later:hover { border-color:#fff; }
+  .later:disabled { opacity:.5; cursor:default; }
+  .seg { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; min-width:0; }
+  .seg button { background:transparent; border:2px solid var(--line); border-radius:12px; padding:10px 0; cursor:pointer; font-weight:600; }
+  .seg button.on { background:#fff; color:#000; border-color:#fff; }
+  .empty { opacity:.7; }
+
+  /* 기분 곡선 */
+  #moodSvg { width:100%; height:auto; display:block; cursor:crosshair; touch-action:manipulation; margin:12px 0 8px; }
+  .note-row { margin-top:18px; }
+  .note-row > span { display:block; font-weight:600; margin-bottom:8px; }
+  .note-row textarea { min-height:120px; }
+
+  /* 관찰 칸 */
+  #nature, #artifact { min-height:140px; }
+
+  /* 피드백 */
+  .fb { border:2px solid #fff; border-radius:24px; padding:32px; margin-top:44px; }
+  .fb p { white-space:pre-wrap; }
+  .fb .reply { min-height:160px; }
+  .replyrow { display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap; margin-top:16px; }
+
+  /* 저장 바 */
+  .savebar { position:fixed; left:0; right:0; bottom:0; background:#000; border-top:2px solid var(--line); }
+  .savebar .inner { max-width:1080px; margin:0 auto; padding:18px 28px; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+
+  @media (max-width:700px) {
+    .wrap { padding:32px 18px 200px; }
+    h1 { font-size:64px; }
+    .plan-top { grid-template-columns:auto 1fr auto; }
+    .plan-top .amt { grid-column:1 / -1; grid-row:2; }
+    .plan-bottom { flex-direction:column; }
+    /* 좁은 화면에서 0%~100% 버튼 다섯 개가 칸 안에 들어가도록 */
+    .plan { padding:16px; }
+    .seg { gap:6px; }
+    /* 글자 크기를 화면 폭에 맞춰 줄여서, 폭이 좁은 폰에서도 '100%'가 버튼 안에 들어가게 */
+    .seg button { font-size:clamp(12px, calc((100vw - 116px) / 13), 22px); letter-spacing:-1px; padding:12px 0; white-space:nowrap; }
+    .who { flex-wrap:wrap; gap:10px; }
+    .later { font-size:clamp(18px, 6vw, 32px); white-space:normal; }
+    .grip { padding:10px 12px; }
+    .icon { padding:0 14px; }
+    .plan-top { gap:8px; }
+    .plan-top input { padding:14px 14px; min-width:0; }
+    .who .btn { padding:12px 22px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .bar i { transition:none; } }
+
+  /* ── 휴대폰 전용: 글씨·여백을 줄여 스크롤을 줄인다 (PC 화면은 그대로) ── */
+  @media (max-width:700px) {
+    body { font-size:17px; letter-spacing:-0.5px; line-height:1.5; }
+    .wrap { padding:20px 14px 120px; }
+    h1 { font-size:30px; }
+    h2 { font-size:21px; margin-bottom:10px; }
+    p { margin-bottom:10px; }
+    label { margin:14px 0 6px; }
+    .block { padding:24px 0; }
+    .top { margin-bottom:18px; gap:10px; align-items:center; }
+    .btn { padding:9px 18px; }
+    .btn.full { margin-top:16px; }
+    .who .btn { padding:8px 14px; }
+    .bell { padding:8px 12px; }
+    .badge { font-size:13px; top:-7px; right:-7px; }
+    .datebar { gap:6px; margin-bottom:16px; flex-wrap:nowrap; }
+    .datebar input { min-width:0; padding:11px 8px; font-size:15px; }
+    .datebar .btn { padding:9px 12px; flex:none; }
+    .tabs { gap:8px; }
+    .tab { padding:10px; }
+    input[type=text], input[type=password], input[type=date], textarea { padding:11px 13px; border-radius:10px; }
+    textarea { min-height:130px; }
+    #nature, #artifact { min-height:80px; }
+    .note-row textarea { min-height:70px; }
+    .fb .reply, .topic textarea { min-height:110px; }
+    #pledge { font-size:22px; padding:6px 0; }
+    .progress { margin-bottom:14px; gap:12px; }
+    .bar { height:10px; }
+    .plan { padding:12px; margin-bottom:10px; border-radius:14px; }
+    .plan-top { gap:6px; margin-bottom:8px; }
+    .plan-top input { padding:9px 10px; }
+    .grip { padding:7px 9px; border-radius:10px; }
+    .icon { padding:0 10px; border-radius:10px; }
+    .seg { gap:5px; }
+    .seg button { font-size:clamp(12px, calc((100vw - 90px) / 13), 16px); padding:8px 0; border-radius:9px; }
+    .later { font-size:15px; padding:8px 12px; border-radius:9px; }
+    .plan-bottom { gap:6px; }
+    .fb { padding:18px; margin-top:24px; border-radius:16px; }
+    .topic { padding:16px; border-radius:14px; margin-bottom:14px; }
+    .topic h3 { font-size:20px; margin-bottom:8px; }
+    .trow { padding:13px 2px; }
+    .trow .cnt { padding:1px 10px; }
+    .wlist { margin-top:20px; }
+    .wcard { padding:12px 0; }
+    .modal-card { padding:22px 18px; }
+    .savebar .inner { padding:10px 14px; }
+    .bell-panel { font-size:16px; }
+    #login .lead { margin-bottom:24px; }
+  }
 </style>
 </head>
 <body>
-<iframe src="https://script.google.com/macros/s/AKfycbyF-oLVVa_KmsY-BYnLfsapByM4mdXz5B-8A1id1hFs2SPDGgzBcnZ9VSflIqD4HxH-qA/exec"
-        allow="clipboard-read; clipboard-write"></iframe>
+<div class="wrap">
+
+  <!-- 로그인 -->
+  <section id="login" class="hidden">
+    <h1><span class="needle">🧭</span>공부의 나침반</h1>
+    <p class="lead">학번과 PIN으로 들어가세요.</p>
+    <label for="loginId">학번</label>
+    <input id="loginId" type="text" inputmode="numeric" autocomplete="username">
+    <label for="loginPin">PIN</label>
+    <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password">
+    <button id="loginBtn" class="btn full">들어가기</button>
+    <p id="loginMsg" class="msg" role="alert"></p>
+  </section>
+
+  <!-- 플래너 -->
+  <section id="app" class="hidden">
+    <header class="top">
+      <h1><span class="needle">🧭</span>공부의 나침반</h1>
+      <div class="who">
+        <span id="who"></span>
+        <span class="bell-wrap">
+          <button id="bellBtn" class="bell" aria-label="알림" aria-expanded="false">
+            <span aria-hidden="true">🔔</span>
+            <span id="bellCount" class="badge hidden"></span>
+          </button>
+          <div id="bellPanel" class="bell-panel hidden">
+            <div class="bell-head">
+              <span id="bellTitle">알림</span>
+              <button class="btn ghost" id="bellReadAll">모두 읽음</button>
+            </div>
+            <div id="bellList"></div>
+          </div>
+        </span>
+        <button id="logoutBtn" class="btn ghost">로그아웃</button>
+      </div>
+    </header>
+
+    <div class="datebar">
+      <button class="btn ghost" id="prevDay" aria-label="전날">◀</button>
+      <input type="date" id="dateInput" aria-label="날짜">
+      <button class="btn ghost" id="nextDay" aria-label="다음날">▶</button>
+      <button class="btn ghost" id="todayBtn">오늘</button>
+    </div>
+
+    <nav class="tabs">
+      <button class="tab on" data-tab="day">하루</button>
+      <button class="tab" data-tab="week">이번 주, 글쓰기</button>
+    </nav>
+
+    <div id="tab-day">
+      <div class="block">
+        <h2>오늘의 다짐</h2>
+        <input id="pledge" type="text" maxlength="200" placeholder="오늘 나는 …">
+      </div>
+
+      <div class="block">
+        <h2>오늘 관찰할 것</h2>
+        <label for="nature">자연물</label>
+        <textarea id="nature" maxlength="3000" placeholder="예: 운동장 은행나무 잎 색"></textarea>
+        <label for="artifact">인공물</label>
+        <textarea id="artifact" maxlength="3000" placeholder="예: 버스 정류장 안내판"></textarea>
+      </div>
+
+      <div class="block">
+        <h2>하루 계획</h2>
+        <p class="hint">손잡이나 칸 사이 빈 곳을 끌면 순서를 바꿀 수 있어요.</p>
+        <div class="progress"><div class="bar"><i id="dayBar"></i></div><span class="rate" id="dayRate">0%</span></div>
+        <div id="dayPlans"></div>
+        <button class="btn ghost full" id="addDayPlan">계획 추가</button>
+      </div>
+
+      <div class="block">
+        <h2>하루 기분 곡선</h2>
+        <p>시간대마다 그때 기분의 높이를 눌러 찍어요. 같은 점을 한 번 더 누르면 지워져요.</p>
+        <svg id="moodSvg" viewBox="0 0 1010 470" role="img" aria-label="시간대별 기분 그래프"></svg>
+        <div id="moodNotes"></div>
+      </div>
+
+      <div class="block">
+        <h2>성찰 일기</h2>
+        <textarea id="diary" maxlength="3000" placeholder="계획대로 된 것, 안 된 것, 그 이유, 내일 바꿀 한 가지를 적어 보세요."></textarea>
+      </div>
+
+      <div class="fb hidden" id="dayFb">
+        <h2>선생님 피드백</h2>
+        <p id="dayFbText"></p>
+        <p id="dayFbAt"></p>
+        <label for="dayReply">나의 답글</label>
+        <textarea id="dayReply" class="reply" maxlength="1000" placeholder="선생님께 하고 싶은 말을 적어 보세요."></textarea>
+        <div class="replyrow"><span id="dayReplyMsg"></span><button class="btn" id="dayReplyBtn">답글 보내기</button></div>
+      </div>
+    </div>
+
+    <div id="tab-week" class="hidden">
+      <div class="block">
+        <h2>주간 계획</h2>
+        <p id="weekRange"></p>
+        <p class="hint">손잡이나 칸 사이 빈 곳을 끌면 순서를 바꿀 수 있어요.</p>
+        <div class="progress"><div class="bar"><i id="weekBar"></i></div><span class="rate" id="weekRate">0%</span></div>
+        <div id="weekPlans"></div>
+        <button class="btn ghost full" id="addWeekPlan">계획 추가</button>
+      </div>
+      <div class="block">
+        <h2>주제 글쓰기</h2>
+        <p class="hint">주제를 누르면 설명과 친구들이 쓴 글을 볼 수 있고, 내 글도 올릴 수 있어요.</p>
+        <div id="topicBoard"></div>
+        <div id="topicDetail" class="hidden"></div>
+      </div>
+      <div class="fb hidden" id="weekFb">
+        <h2>선생님 피드백</h2>
+        <p id="weekFbText"></p>
+        <p id="weekFbAt"></p>
+        <label for="weekReply">나의 답글</label>
+        <textarea id="weekReply" class="reply" maxlength="1000" placeholder="선생님께 하고 싶은 말을 적어 보세요."></textarea>
+        <div class="replyrow"><span id="weekReplyMsg"></span><button class="btn" id="weekReplyBtn">답글 보내기</button></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal hidden" id="confirmBox" role="dialog" aria-modal="true" aria-labelledby="confirmText">
+  <div class="modal-card">
+    <h2 id="confirmText"></h2>
+    <p class="sub" id="confirmSub"></p>
+    <div class="modal-btns">
+      <button class="btn ghost" id="confirmNo">아니오</button>
+      <button class="btn" id="confirmYes">예</button>
+    </div>
+  </div>
+</div>
+
+<div class="savebar hidden" id="savebar">
+  <div class="inner">
+    <span id="saveMsg" role="status"></span>
+    <button class="btn" id="saveBtn">저장</button>
+  </div>
+</div>
+
 <script>
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+const SLOTS = ['아침','오전','점심','오후','저녁','밤'];
+const LEVELS = [0,25,50,75,100];
+const FACES = { '2':'😆', '1':'🙂', '0':'😐', '-1':'🙁', '-2':'😣' };
+const TOKEN_KEY = 'compass_student_token';
+const S = { token:null, today:'', date:'', weekStart:'', daily:null, weekly:[], dirty:false, busy:false, req:0, cache:{}, pending:{}, weeklySaved:'[]', topicDirty:new Set(), board:null, boardShown:10, topicCur:null, notices:[], noticeLatest:'', noticeTimer:null };
+const $ = id => document.getElementById(id);
+
+/* ── 공통 ── */
+// 서버(Apps Script 웹앱) 주소. 배포 관리에서 보이는 /exec 주소를 넣는다.
+const API_URL = 'https://script.google.com/macros/s/AKfycbyF-oLVVa_KmsY-BYnLfsapByM4mdXz5B-8A1id1hFs2SPDGgzBcnZ9VSflIqD4HxH-qA/exec';
+
+/* 서버 함수 호출.
+   GitHub 등 바깥에 둔 화면에서는 인터넷 주소(API_URL)로 요청하고,
+   예전처럼 Apps Script 안에서 열렸으면 google.script.run을 그대로 쓴다. */
+async function run(fn, ...args) {
+  if (window.google && google.script && google.script.run) {
+    return new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  }
+  let r;
+  try {
+    r = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // 이렇게 보내야 구글 서버가 막지 않는다
+      body: JSON.stringify({ fn, args })
+    });
+  } catch (e) { throw new Error('서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
+  let data;
+  try { data = await r.json(); } catch (e) { throw new Error('서버 응답을 읽지 못했어요. 잠시 뒤 다시 해 주세요.'); }
+  if (!data.ok) throw new Error(data.error || '알 수 없는 오류가 났어요.');
+  return data.result;
+}
+function store(k, v) { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} }
+function load(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  Object.entries(props || {}).forEach(([k, v]) => {
+    if (k === 'class') e.className = v;
+    else if (k === 'value') e.value = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k, v);
+  });
+  kids.flat().forEach(c => { if (c != null && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c))); });
+  return e;
+}
+function show(which) {
+  $('login').classList.toggle('hidden', which !== 'login');
+  $('app').classList.toggle('hidden', which !== 'app');
+  $('savebar').classList.toggle('hidden', which !== 'app');
+}
+function setMsg(t) { $('saveMsg').textContent = t; }
+function setDirty(v) { S.dirty = v; if (v) setMsg('저장하지 않은 변경이 있어요'); }
+// 플래너나 주제 글에 아직 저장/올리지 않은 내용이 있는지
+function editing() { return S.dirty || S.topicDirty.size > 0; }
+function errText(e) { return (e && e.message) ? e.message : String(e); }
+function handleErr(e) {
+  const m = errText(e);
+  if (m.includes('로그인')) { doLogout(m); return; }
+  setMsg(m);
+}
+function addDays(date, n) {
+  const [y, m, d] = date.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return t.toISOString().slice(0, 10);
+}
+function korDate(date) {
+  const [y, m, d] = date.split('-').map(Number);
+  const w = '일월화수목금토'[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
+  return `${m}월 ${d}일(${w})`;
+}
+function emptyDaily() {
+  return { pledge:'', nature:'', artifact:'', plans:[], mood:SLOTS.map(s => ({ slot:s, v:null, note:'' })), diary:'', feedback:'', feedbackAt:'', reply:'', replyAt:'' };
+}
+function normalizeMood(arr) {
+  const map = {};
+  (arr || []).forEach(m => { if (m && SLOTS.includes(m.slot)) map[m.slot] = m; });
+  return SLOTS.map(s => ({ slot:s, v: map[s] && map[s].v != null ? Number(map[s].v) : null, note: map[s] ? (map[s].note || '') : '' }));
+}
+
+/* ── 로그인 ── */
+async function doLogin() {
+  const id = $('loginId').value.trim(), pin = $('loginPin').value.trim();
+  $('loginMsg').textContent = '확인 중…';
+  $('loginBtn').disabled = true;
+  try {
+    const r = await run('studentLogin', id, pin);
+    $('loginPin').value = '';
+    $('loginMsg').textContent = '';
+    enter(r.token, r.name, r.today);
+  } catch (e) {
+    $('loginMsg').textContent = errText(e);
+  } finally {
+    $('loginBtn').disabled = false;
+  }
+}
+function enter(token, name, today) {
+  S.token = token; S.today = today; store(TOKEN_KEY, token);
+  $('who').textContent = name;
+  show('app');
+  goDate(today, true);
+  if (!$('tab-week').classList.contains('hidden')) loadBoard();
+  checkNotices();
+  if (S.noticeTimer) clearInterval(S.noticeTimer);
+  S.noticeTimer = setInterval(checkNotices, NOTICE_INTERVAL);
+}
+function doLogout(message) {
+  if (S.token) run('logout', S.token).catch(() => {});
+  if (S.noticeTimer) { clearInterval(S.noticeTimer); S.noticeTimer = null; }
+  S.token = null; S.dirty = false; S.cache = {}; S.board = null; S.boardShown = 10; S.topicCur = null; S.topicDirty.clear(); S.pending = {};
+  $('topicDetail').classList.add('hidden'); $('topicBoard').classList.remove('hidden'); S.notices = []; S.noticeLatest = ''; store(TOKEN_KEY, null);
+  toggleBell(false);
+  renderBell();
+  $('loginMsg').textContent = typeof message === 'string' ? message : '';
+  show('login');
+}
+
+/* ── 불러오기 ── */
+// 한 번 불러온 날짜는 S.cache에 기억해 두었다가 바로 보여 주고, 뒤에서 최신 내용을 다시 받아 온다.
+async function goDate(date, force) {
+  if (!force && editing() && !confirm('저장하지 않은 내용이 있어요. 저장하지 않고 이동할까요?')) {
+    $('dateInput').value = S.date; return;
+  }
+  const req = ++S.req;
+  S.date = date; $('dateInput').value = date;
+  const hit = S.cache[date];
+  if (hit) applyDay(hit);
+  else { S.daily = null; setMsg('불러오는 중…'); }
+  prefetch(date);
+  try {
+    const r = await run('getMyDay', S.token, date);
+    if (req !== S.req) return;
+    const changed = !hit || JSON.stringify(hit) !== JSON.stringify(r);
+    S.cache[date] = r;
+    if (changed && !editing()) applyDay(r);
+  } catch (e) { if (req === S.req && (!hit || errText(e).includes('로그인'))) handleErr(e); }
+}
+function applyDay(r) {
+  r = JSON.parse(JSON.stringify(r));
+  S.weekStart = r.weekStart;
+  S.daily = r.daily ? Object.assign(emptyDaily(), r.daily) : emptyDaily();
+  S.daily.mood = normalizeMood(S.daily.mood);
+  S.weekly = r.weekly ? r.weekly.plans : [];
+  S.weeklySaved = JSON.stringify(S.weekly);
+  S.weekFb = r.weekly ? { text:r.weekly.feedback, at:r.weekly.feedbackAt, reply:r.weekly.reply, replyAt:r.weekly.replyAt } : null;
+  renderAll();
+  setDirty(false);
+  setMsg(r.daily ? korDate(r.date) + ' 플래너' : korDate(r.date) + ' · 새 플래너');
+}
+// 앞뒤 날짜를 미리 받아 두어 ◀ ▶ 이동을 빠르게
+function prefetch(date) {
+  const want = [addDays(date, 1), addDays(date, -1)].filter(d => !S.cache[d] && !S.pending[d]);
+  if (!want.length) return;
+  want.forEach(d => S.pending[d] = true);
+  run('getMyDays', S.token, want)
+    .then(list => list.forEach(r => { if (!S.cache[r.date]) S.cache[r.date] = r; }))
+    .catch(() => {})
+    .finally(() => want.forEach(d => delete S.pending[d]));
+}
+// 저장에 성공한 내용을 기억해 둔 날짜 정보에도 반영
+function remember(daily) {
+  const c = S.cache[S.date] || { date:S.date, weekStart:S.weekStart, daily:null, weekly:null };
+  c.daily = Object.assign({}, c.daily || {}, JSON.parse(JSON.stringify(daily)));
+  S.cache[S.date] = c;
+  const plans = JSON.parse(S.weeklySaved);
+  Object.values(S.cache).forEach(x => {
+    if (x.weekStart !== S.weekStart) return;
+    x.weekly = Object.assign({ feedback:'', feedbackAt:'', reply:'', replyAt:'' }, x.weekly || {}, { plans: JSON.parse(JSON.stringify(plans)) });
+  });
+}
+
+/* ── 그리기 ── */
+function renderAll() {
+  $('pledge').value = S.daily.pledge;
+  $('nature').value = S.daily.nature;
+  $('artifact').value = S.daily.artifact;
+  $('diary').value = S.daily.diary;
+  renderPlans($('dayPlans'), S.daily.plans, 'day');
+  renderPlans($('weekPlans'), S.weekly, 'week');
+  renderMood();
+  $('weekRange').textContent = `${korDate(S.weekStart)} ~ ${korDate(addDays(S.weekStart, 6))}`;
+  showFb('day', S.daily.feedback ? { text:S.daily.feedback, at:S.daily.feedbackAt, reply:S.daily.reply, replyAt:S.daily.replyAt } : null);
+  showFb('week', S.weekFb && S.weekFb.text ? S.weekFb : null);
+}
+function showFb(kind, fb) {
+  $(kind + 'Fb').classList.toggle('hidden', !fb);
+  if (!fb) return;
+  $(kind + 'FbText').textContent = fb.text;
+  $(kind + 'FbAt').textContent = fb.at ? fb.at + ' 작성' : '';
+  $(kind + 'Reply').value = fb.reply || '';
+  $(kind + 'ReplyMsg').textContent = fb.replyAt ? fb.replyAt + ' 보냄' : '';
+}
+async function sendReply(kind) {
+  const btn = $(kind + 'ReplyBtn'), msg = $(kind + 'ReplyMsg'), ta = $(kind + 'Reply');
+  btn.disabled = true; msg.textContent = '보내는 중…';
+  try {
+    const r = await run('saveMyReply', S.token, kind === 'day' ? 'daily' : 'weekly', S.date, ta.value);
+    msg.textContent = r.savedAt + ' 보냄';
+    if (kind === 'day') {
+      S.daily.reply = ta.value; S.daily.replyAt = r.savedAt;
+      const c = S.cache[S.date];
+      if (c && c.daily) { c.daily.reply = ta.value; c.daily.replyAt = r.savedAt; }
+    } else if (S.weekFb) {
+      S.weekFb.reply = ta.value; S.weekFb.replyAt = r.savedAt;
+      Object.values(S.cache).forEach(x => { if (x.weekStart === S.weekStart && x.weekly) { x.weekly.reply = ta.value; x.weekly.replyAt = r.savedAt; } });
+    }
+  } catch (e) { msg.textContent = errText(e); if (errText(e).includes('로그인')) doLogout(errText(e)); }
+  finally { btn.disabled = false; }
+}
+function renderPlans(box, list, kind) {
+  box.innerHTML = '';
+  if (!list.length) box.append(h('p', { class:'empty' }, '아직 계획이 없어요. 아래 버튼으로 과목과 분량을 적어 보세요.'));
+  list.forEach((p, i) => {
+    const subj = h('input', { type:'text', class:'subj', maxlength:'40', placeholder:'과목', value:p.subject || '',
+      oninput: e => { p.subject = e.target.value; setDirty(true); } });
+    const amt = h('input', { type:'text', class:'amt', maxlength:'100', placeholder:'분량 (예: 수학 p.30~45)', value:p.amount || '',
+      oninput: e => { p.amount = e.target.value; setDirty(true); } });
+    const grip = h('button', { class:'grip', 'aria-label':'순서 바꾸기 (위아래 화살표 키로도 옮길 수 있어요)',
+      onkeydown: e => {
+        const dir = e.key === 'ArrowUp' ? -1 : (e.key === 'ArrowDown' ? 1 : 0);
+        if (!dir) return;
+        e.preventDefault();
+        movePlan(box, list, kind, i, i + dir);
+      } }, '⋮⋮');
+    grip.addEventListener('pointerdown', e => startDrag(e, box, list, kind, row));
+    const del = h('button', { class:'icon', 'aria-label':'계획 삭제',
+      onclick: () => { list.splice(i, 1); renderPlans(box, list, kind); setDirty(true); } }, '✕');
+    const seg = h('div', { class:'seg', role:'group', 'aria-label':'완료도' },
+      LEVELS.map(lv => h('button', { class: p.done === lv ? 'on' : '', 'aria-pressed': String(p.done === lv),
+        onclick: () => { p.done = lv; renderPlans(box, list, kind); setDirty(true); } }, lv + '%')));
+    // 하루 계획 중 다 못 한 것만 내일로 미룰 수 있다
+    const later = kind === 'day' && p.done !== 100
+      ? h('button', { class:'later', 'aria-label':'이 계획을 내일로 미루기', onclick: () => postpone(i) }, '내일로 미루기 ▶')
+      : null;
+    const row = h('div', { class:'plan' + (p.done === 100 ? ' done' : ''), 'data-idx': String(i) },
+      h('div', { class:'plan-top' }, grip, subj, amt, del),
+      h('div', { class:'plan-bottom' }, seg, later));
+    // 입력칸·버튼이 아닌 빈 곳을 눌러도 끌 수 있게
+    row.addEventListener('pointerdown', e => {
+      if (e.target.closest('input, textarea, button')) return;
+      startDrag(e, box, list, kind, row);
+    });
+    box.append(row);
+  });
+  const avg = list.length ? Math.round(list.reduce((a, p) => a + (p.done || 0), 0) / list.length) : 0;
+  $(kind + 'Bar').style.width = avg + '%';
+  $(kind + 'Rate').textContent = avg + '%';
+}
+
+/* 계획 순서 바꾸기 */
+function movePlan(box, list, kind, from, to) {
+  if (to < 0 || to >= list.length || from === to) return;
+  list.splice(to, 0, list.splice(from, 1)[0]);
+  renderPlans(box, list, kind);
+  setDirty(true);
+  const grips = box.querySelectorAll('.grip');
+  if (grips[to]) grips[to].focus();
+}
+function startDrag(ev, box, list, kind, row) {
+  if (ev.button != null && ev.button !== 0) return;
+  if (row.classList.contains('dragging')) return;
+  ev.preventDefault();
+  row.classList.add('dragging');
+  document.body.classList.add('dragging');
+
+  const onMove = e => {
+    const rows = [...box.querySelectorAll('.plan')].filter(r => r !== row);
+    let placed = false;
+    for (const r of rows) {
+      const b = r.getBoundingClientRect();
+      if (e.clientY < b.top + b.height / 2) { box.insertBefore(row, r); placed = true; break; }
+    }
+    if (!placed) box.append(row);
+  };
+  const onUp = () => {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    document.removeEventListener('pointercancel', onUp);
+    row.classList.remove('dragging');
+    document.body.classList.remove('dragging');
+    const order = [...box.querySelectorAll('.plan')].map(r => Number(r.dataset.idx));
+    const next = order.map(i => list[i]);
+    if (next.some((x, i) => x !== list[i])) {
+      list.splice(0, list.length, ...next);
+      setDirty(true);
+    }
+    renderPlans(box, list, kind);
+  };
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+  document.addEventListener('pointercancel', onUp);
+}
+function addPlan(kind) {
+  if (!S.daily) return;
+  const list = kind === 'day' ? S.daily.plans : S.weekly;
+  list.push({ subject:'', amount:'', done:0 });
+  renderPlans($(kind + 'Plans'), list, kind);
+  const inputs = $(kind + 'Plans').querySelectorAll('.subj');
+  inputs[inputs.length - 1].focus();
+  setDirty(true);
+}
+
+/* 기분 곡선: x = 시간대, y = -2 ~ +2 */
+const MX = i => 110 + i * 170;
+const MY = v => 215 - v * 85;
+function drawMood(svg, mood) {
+  const NS = 'http://www.w3.org/2000/svg';
+  svg.innerHTML = '';
+  const s = (tag, attrs, txt) => {
+    const e = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k, v]) => e.setAttribute(k, v));
+    if (txt != null) e.textContent = txt;
+    svg.append(e); return e;
+  };
+  [2, 1, 0, -1, -2].forEach(v => {
+    s('line', { x1:75, x2:1000, y1:MY(v), y2:MY(v), stroke: v === 0 ? '#fff' : '#333', 'stroke-width': v === 0 ? 2 : 1.5, 'stroke-dasharray': v === 0 ? '' : '6 10' });
+    s('text', { x:34, y:MY(v) + 13, 'font-size':36, 'text-anchor':'middle' }, FACES[v]);
+  });
+  SLOTS.forEach((sl, i) => {
+    s('line', { x1:MX(i), x2:MX(i), y1:30, y2:400, stroke:'#1f1f1f', 'stroke-width':2 });
+    s('text', { x:MX(i), y:452, 'font-size':32, 'text-anchor':'middle', fill:'#fff', 'letter-spacing':'-3', 'font-family':'Pretendard, sans-serif' }, sl);
+  });
+  const pts = mood.map((m, i) => m.v == null ? null : [MX(i), MY(m.v)]).filter(Boolean);
+  if (pts.length > 1) s('polyline', { points: pts.map(p => p.join(',')).join(' '), fill:'none', stroke:'#fff', 'stroke-width':6, 'stroke-linejoin':'round', 'stroke-linecap':'round' });
+  pts.forEach(p => s('circle', { cx:p[0], cy:p[1], r:15, fill:'#000', stroke:'#fff', 'stroke-width':6 }));
+}
+function renderMood() {
+  drawMood($('moodSvg'), S.daily.mood);
+  const box = $('moodNotes'); box.innerHTML = '';
+  S.daily.mood.forEach(m => {
+    if (m.v == null) return;
+    box.append(h('div', { class:'note-row' },
+      h('span', {}, `${m.slot} ${FACES[m.v]}`),
+      h('textarea', { maxlength:'3000', placeholder:'이때 무슨 일이 있었나요?', value:m.note,
+        oninput: e => { m.note = e.target.value; setDirty(true); } })));
+  });
+}
+function onMoodClick(ev) {
+  if (!S.daily) return;
+  const svg = ev.currentTarget;
+  const pt = svg.createSVGPoint(); pt.x = ev.clientX; pt.y = ev.clientY;
+  const p = pt.matrixTransform(svg.getScreenCTM().inverse());
+  if (p.y > 420) return;
+  const i = Math.max(0, Math.min(SLOTS.length - 1, Math.round((p.x - 110) / 170)));
+  const v = Math.max(-2, Math.min(2, Math.round((215 - p.y) / 85)));
+  const m = S.daily.mood[i];
+  m.v = (m.v === v) ? null : v;
+  renderMood(); setDirty(true);
+}
+
+/* ── 저장 ── */
+function collectDaily(plans) {
+  return {
+    pledge: $('pledge').value, nature: $('nature').value, artifact: $('artifact').value,
+    plans: plans, mood: S.daily.mood, diary: $('diary').value
+  };
+}
+async function save() {
+  if (S.busy || !S.daily) return;
+  S.busy = true; $('saveBtn').disabled = true; setMsg('저장 중…');
+  const daily = collectDaily(S.daily.plans);
+  const weeklyNow = JSON.stringify(S.weekly);
+  try {
+    // 주간 계획이 그대로면 보내지 않아 저장을 가볍게
+    const r = await run('saveMyAll', S.token, S.date, daily, weeklyNow === S.weeklySaved ? null : S.weekly);
+    S.req++;   // 저장 전에 요청해 둔 옛 내용이 화면을 덮지 않게
+    S.dirty = false;
+    S.weeklySaved = weeklyNow;
+    remember(daily);
+    setMsg('저장했어요 · ' + r.savedAt.slice(11));
+  } catch (e) { handleErr(e); }
+  finally { S.busy = false; $('saveBtn').disabled = false; }
+}
+
+/* 다 못 한 하루 계획을 내일로 미루고, 내일 플래너로 이동한다 */
+async function postpone(i) {
+  if (S.busy || !S.daily) return;
+  const p = S.daily.plans[i];
+  const rest = S.daily.plans.filter((_, k) => k !== i);
+  if (!String(p.subject || '').trim() && !String(p.amount || '').trim()) {
+    S.daily.plans.splice(i, 1); renderPlans($('dayPlans'), S.daily.plans, 'day'); setDirty(true); return;
+  }
+  if (!await askConfirm('내일로 미루겠습니까?', `'${p.subject || p.amount}' 계획이 ${korDate(addDays(S.date, 1))}로 옮겨져요.`)) return;
+  if (S.busy) return;
+  S.busy = true; $('saveBtn').disabled = true;
+  document.querySelectorAll('.later').forEach(b => b.disabled = true);
+  setMsg('내일로 옮기는 중…');
+  const daily = collectDaily(rest);
+  const weeklyNow = JSON.stringify(S.weekly);
+  try {
+    const r = await run('postponeMyPlan', S.token, S.date, daily, weeklyNow === S.weeklySaved ? null : S.weekly, p);
+    S.req++;
+    S.daily.plans = rest;
+    S.dirty = false;
+    S.weeklySaved = weeklyNow;
+    remember(daily);
+    delete S.cache[r.next];   // 다음 날은 다음에 열 때 새로 불러온다
+    renderPlans($('dayPlans'), S.daily.plans, 'day');
+    setMsg(`'${p.subject || p.amount}' 계획을 ${korDate(r.next)}로 미뤘어요`);
+  } catch (e) {
+    handleErr(e);
+    document.querySelectorAll('.later').forEach(b => b.disabled = false);
+  } finally { S.busy = false; $('saveBtn').disabled = false; }
+}
+
+/* 예/아니오 확인 창. 예를 누르면 true */
+function askConfirm(text, sub) {
+  return new Promise(resolve => {
+    const box = $('confirmBox');
+    $('confirmText').textContent = text;
+    $('confirmSub').textContent = sub || '';
+    box.classList.remove('hidden');
+    $('confirmNo').focus();   // 실수로 Enter를 눌러도 미뤄지지 않게 '아니오'에 먼저 초점
+    const done = ok => {
+      box.classList.add('hidden');
+      $('confirmYes').onclick = $('confirmNo').onclick = box.onclick = null;
+      document.removeEventListener('keydown', onKey, true);
+      resolve(ok);
+    };
+    const onKey = e => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+    $('confirmYes').onclick = () => done(true);
+    $('confirmNo').onclick = () => done(false);
+    box.onclick = e => { if (e.target === box) done(false); };
+    document.addEventListener('keydown', onKey, true);
+  });
+}
+
+/* ── 주제 글쓰기 (게시판) ── */
+async function loadBoard() {
+  const box = $('topicBoard');
+  if (!S.board) box.innerHTML = '<p class="empty">불러오는 중…</p>';
+  try {
+    S.board = await run('getTopicBoard', S.token);
+    renderBoard();
+  } catch (e) { if (!S.board) box.innerHTML = ''; box.append(h('p', {}, errText(e))); if (errText(e).includes('로그인')) doLogout(errText(e)); }
+}
+function renderBoard() {
+  const box = $('topicBoard');
+  box.innerHTML = '';
+  const list = S.board || [];
+  if (!list.length) { box.append(h('p', { class:'empty' }, '아직 올라온 글쓰기 주제가 없어요.')); return; }
+  list.slice(0, S.boardShown).forEach(t => box.append(
+    h('button', { class:'trow', onclick: () => openTopic(t.id) },
+      h('span', {}, h('span', { class:'tt' }, t.title), h('span', { class:'meta' }, korDate(t.date))),
+      h('span', { class:'cnt' + (t.mine ? ' mine' : ''), 'aria-label': `글 ${t.count}개${t.mine ? ', 나도 씀' : ''}` },
+        (t.mine ? '✓ ' : '') + '글 ' + t.count))));
+  if (list.length > S.boardShown) {
+    box.append(h('button', { class:'btn ghost full', onclick: () => { S.boardShown += 10; renderBoard(); } },
+      `더 보기 (${list.length - S.boardShown}개 남음)`));
+  }
+}
+async function openTopic(id) {
+  S.topicCur = id;
+  $('topicBoard').classList.add('hidden');
+  const box = $('topicDetail');
+  box.classList.remove('hidden');
+  box.innerHTML = '<p class="empty">불러오는 중…</p>';
+  box.scrollIntoView({ block:'start' });
+  try {
+    const t = await run('getTopicDetail', S.token, id);
+    if (S.topicCur !== id) return;
+    renderTopicDetail(t);
+  } catch (e) { box.innerHTML = ''; box.append(h('button', { class:'btn ghost', onclick: closeTopic }, '◀ 목록으로'), h('p', {}, errText(e))); }
+}
+function closeTopic() {
+  if (S.topicDirty.size && !confirm('아직 올리지 않은 글이 있어요. 목록으로 돌아갈까요?')) return;
+  S.topicDirty.clear();
+  S.topicCur = null;
+  $('topicDetail').classList.add('hidden');
+  $('topicBoard').classList.remove('hidden');
+  $('topicBoard').scrollIntoView({ block:'start' });
+  loadBoard();
+}
+function renderTopicDetail(t) {
+  const box = $('topicDetail');
+  box.innerHTML = '';
+  const mine = t.writings.find(w => w.mine);
+  const msg = h('span', {}, mine ? mine.at + ' 올림' : '');
+  const ta = h('textarea', { maxlength:'3000', placeholder:'이 주제로 내 생각을 적어 보세요.', value: mine ? mine.text : '',
+    'aria-label':'내 글', oninput: () => { S.topicDirty.add(t.id); msg.textContent = '아직 올리지 않았어요'; } });
+  const btn = h('button', { class:'btn' }, mine ? '고쳐 올리기' : '글 올리기');
+  btn.onclick = () => saveWriting(t, ta, btn, msg);
+  box.append(
+    h('button', { class:'btn ghost', onclick: closeTopic }, '◀ 목록으로'),
+    h('div', { class:'topic has', style:'margin-top:24px' },
+      h('p', { class:'tdate' }, korDate(t.date)),
+      h('h3', {}, t.title),
+      t.body ? h('p', { class:'tbody' }, t.body) : null,
+      h('label', {}, '내 글'),
+      ta,
+      h('div', { class:'replyrow' }, msg, btn)),
+    h('div', { class:'wlist' },
+      h('h2', {}, `모두의 글 ${t.writings.length}개`),
+      t.writings.length
+        ? t.writings.map(w => h('div', { class:'wcard' + (w.mine ? ' me' : '') },
+            h('p', { class:'wname' }, w.name, h('span', {}, ' · ' + w.at)),
+            h('p', { class:'wtext' }, w.text)))
+        : h('p', { class:'empty' }, '아직 올라온 글이 없어요. 첫 글을 올려 보세요!')));
+}
+async function saveWriting(t, ta, btn, msg) {
+  btn.disabled = true; msg.textContent = '올리는 중…';
+  try {
+    await run('saveMyWriting', S.token, t.id, ta.value);
+    S.topicDirty.delete(t.id);
+    const fresh = await run('getTopicDetail', S.token, t.id);
+    if (S.topicCur === t.id) renderTopicDetail(fresh);
+  } catch (e) { msg.textContent = errText(e); btn.disabled = false; if (errText(e).includes('로그인')) doLogout(errText(e)); }
+}
+
+/* ── 피드백 알림 ── */
+const NOTICE_INTERVAL = 3 * 60 * 1000;
+async function checkNotices() {
+  if (!S.token || document.hidden) return;
+  try {
+    const r = await run('getMyNotices', S.token);
+    S.notices = r.items || [];
+    S.noticeLatest = r.latest || '';
+    renderBell();
+  } catch (e) { /* 알림은 실패해도 조용히 넘어간다 */ }
+}
+function renderBell() {
+  const n = S.notices.length;
+  const badge = $('bellCount');
+  badge.textContent = n > 9 ? '9+' : String(n);
+  badge.classList.toggle('hidden', !n);
+  $('bellBtn').classList.toggle('on', !!n);
+  $('bellBtn').setAttribute('aria-label', n ? `알림 ${n}개` : '알림');
+  $('bellTitle').textContent = n ? `안 본 피드백 ${n}개` : '알림';
+  $('bellReadAll').classList.toggle('hidden', !n);
+
+  const list = $('bellList');
+  list.innerHTML = '';
+  if (!n) { list.append(h('p', { class:'bell-item' }, '새로운 피드백이 없어요.')); return; }
+  S.notices.forEach(it => {
+    const where = it.kind === 'daily'
+      ? korDate(it.key) + ' 하루 피드백'
+      : korDate(it.key) + ' 주간 피드백';
+    list.append(h('button', { class:'bell-item', onclick: () => goToNotice(it) },
+      h('span', {}, where),
+      h('span', { class:'when' }, it.at)));
+  });
+}
+function toggleBell(force) {
+  const open = force != null ? force : $('bellPanel').classList.contains('hidden');
+  $('bellPanel').classList.toggle('hidden', !open);
+  $('bellBtn').setAttribute('aria-expanded', String(open));
+}
+async function goToNotice(it) {
+  toggleBell(false);
+  setTab(it.kind === 'daily' ? 'day' : 'week');
+  await goDate(it.key);
+  await markSeen(it.at);
+}
+async function markSeen(upTo) {
+  const at = upTo || S.noticeLatest;
+  if (!at) return;
+  S.notices = S.notices.filter(x => x.at > at);
+  if (!S.notices.length) S.noticeLatest = '';
+  renderBell();
+  try { await run('markNoticesSeen', S.token, at); } catch (e) {}
+}
+function setTab(name) {
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === name));
+  $('tab-day').classList.toggle('hidden', name !== 'day');
+  $('tab-week').classList.toggle('hidden', name !== 'week');
+  if (name === 'week' && !S.topicCur) loadBoard();
+}
+
+/* ── 이벤트 ── */
+function bind() {
+  $('loginBtn').onclick = doLogin;
+  $('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  $('logoutBtn').onclick = () => { if (!editing() || confirm('저장하지 않은 내용이 있어요. 로그아웃할까요?')) doLogout(); };
+  $('prevDay').onclick = () => goDate(addDays(S.date, -1));
+  $('nextDay').onclick = () => goDate(addDays(S.date, 1));
+  $('todayBtn').onclick = () => goDate(S.today);
+  $('dateInput').addEventListener('change', e => { if (e.target.value) goDate(e.target.value); });
+  $('addDayPlan').onclick = () => addPlan('day');
+  $('addWeekPlan').onclick = () => addPlan('week');
+  $('moodSvg').addEventListener('click', onMoodClick);
+  ['pledge', 'nature', 'artifact', 'diary'].forEach(id => $(id).addEventListener('input', () => setDirty(true)));
+  $('saveBtn').onclick = save;
+  $('dayReplyBtn').onclick = () => sendReply('day');
+  $('weekReplyBtn').onclick = () => sendReply('week');
+  document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); save(); } });
+  document.querySelectorAll('.tab').forEach(t => t.onclick = () => setTab(t.dataset.tab));
+  $('bellBtn').onclick = e => { e.stopPropagation(); toggleBell(); };
+  $('bellReadAll').onclick = e => { e.stopPropagation(); markSeen(S.noticeLatest); toggleBell(false); };
+  document.addEventListener('click', e => {
+    if (!$('bellPanel').classList.contains('hidden') && !e.target.closest('.bell-wrap')) toggleBell(false);
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') toggleBell(false); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkNotices(); });
+  window.addEventListener('beforeunload', e => { if (editing()) { e.preventDefault(); e.returnValue = ''; } });
+}
+
+window.addEventListener('load', async () => {
+  bind();
+  const t = load(TOKEN_KEY);
+  if (t) {
+    try {
+      const me = await run('whoAmI', t);
+      if (me.role === 'student') { enter(t, me.name, me.today); return; }
+    } catch (e) {}
+  }
+  show('login');
+});
 </script>
 </body>
 </html>
